@@ -4,6 +4,7 @@ using Shouldly;
 using System;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Diagnostics;
 
 namespace AsyncBus.Tests
 {
@@ -19,7 +20,7 @@ namespace AsyncBus.Tests
         [Fact]
         internal void Bus_Should_Allow_Registering_Subscriber_Returning_Void()
         {
-            void Callback(string value) {};
+            void Callback(string value) { };
 
             Should.NotThrow(() => _bus.SubscribeSync<string>(Callback));
         }
@@ -75,7 +76,7 @@ namespace AsyncBus.Tests
             using (_bus.SubscribeSync<Parent>(Callback))
             {
                 // WHEN we publish a child object.
-                await _bus.Publish(new Child { Property = 5});
+                await _bus.Publish(new Child { Property = 5 });
 
                 // THEN the subscriber should have received the published child.
                 receivedParent.ShouldNotBeNull();
@@ -115,11 +116,17 @@ namespace AsyncBus.Tests
         internal async Task Client_Should_Be_Able_To_Cancel_Message_Publication()
         {
             // GIVEN two subscribers register to the bus.
-            var tcs = new TaskCompletionSource<object>();
-            bool secondCallbackCalled = false;
+            var firstSubscriberNotifiedTcs = new TaskCompletionSource<object>();
+            var firstSubscriberBlockTcs = new TaskCompletionSource<object>();
+            bool secondSubscriberNotified = false;
 
-            Task CallbackA(int _) => tcs.Task;
-            void CallbackB(int _) => secondCallbackCalled = true;
+            async Task CallbackA(int _)
+            {
+                firstSubscriberNotifiedTcs.SetResult(null);
+                await firstSubscriberBlockTcs.Task;
+            }
+            
+            void CallbackB(int _) => secondSubscriberNotified = true;
 
             using (_bus.Subscribe<int>(CallbackA))
             using (_bus.SubscribeSync<int>(CallbackB))
@@ -127,19 +134,30 @@ namespace AsyncBus.Tests
                 // WHEN we publish a message with a cancellation token.
                 var cts = new CancellationTokenSource();
                 var publicationTask = _bus.Publish(3, cts.Token);
+                await firstSubscriberNotifiedTcs.Task;
 
                 // THEN the second callback should not have been called.
-                secondCallbackCalled.ShouldBeFalse();
+                secondSubscriberNotified.ShouldBeFalse();
 
                 // WHEN we request cancellation of the publication.
                 cts.Cancel();
 
                 // AND we signal completion of the first callback.
-                tcs.SetResult(null);
+                firstSubscriberBlockTcs.SetResult(null);
 
-                // THEN the second callback should not have been called.
-                await Should.ThrowAsync<TaskCanceledException>(publicationTask);
-                secondCallbackCalled.ShouldBeFalse();
+                // THEN the second callback should still not have been called.
+                // NOTE: done this way because Should.ThrowAsync does not work for OperationCanceledException
+                try
+                {
+                    await publicationTask;
+                    throw new Exception("Task was not canceled as expected");
+                }
+                catch (OperationCanceledException)
+                {
+                    // Test successful.
+                }
+
+                secondSubscriberNotified.ShouldBeFalse();
             }
         }
 
@@ -166,7 +184,7 @@ namespace AsyncBus.Tests
 
                 // THEN the subscriber should be notified of that cancellation.
                 tcs.SetResult(null);
-                await Should.ThrowAsync<TaskCanceledException>(publicationTask);
+                await publicationTask;
                 cancellationRequested.ShouldBeTrue();
             }
 
@@ -177,7 +195,7 @@ namespace AsyncBus.Tests
         {
             // GIVEN a subscriber that throws an exception when notified.
             void Callback(int _) => throw new ArgumentException("All numbers are terrible.");
-            
+
             using (_bus.SubscribeSync<int>(Callback))
             {
                 // EXCEPT an exception is thrown when we publish an integer on the bus.

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -6,20 +8,39 @@ namespace AsyncBus
 {
     public sealed class Bus : IBus
     {
-        public Task Publish(object message, CancellationToken cancellationToken = default)
+        private readonly List<ISubscription> _subscriptions;
+
+        public Bus()
         {
-            throw new NotImplementedException();
+            _subscriptions = new List<ISubscription>();
+        }
+
+        public async Task Publish(object message, CancellationToken cancellationToken = default)
+        {
+            foreach (var subscription in _subscriptions)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (subscription.CanProcessMessage(message))
+                {
+                    await subscription.ProcessMessage(message, cancellationToken);
+                }
+            }
         }
 
         public IDisposable Subscribe<T>(Func<T, CancellationToken, Task> callback)
         {
-            throw new NotImplementedException();
+            var subscription = new Subscription<T>(callback);
+            subscription.Disposed += (s, e) => _subscriptions.Remove(subscription);
+            _subscriptions.Add(subscription);
+
+            return subscription;
         }
 
         public IDisposable Subscribe<T>(Func<T, Task> callback)
-            => Subscribe<T>((value, cancellationToken) => callback(value));
-            
+            => Subscribe<T>((message, cancellationToken) => callback(message));
+
         public IDisposable SubscribeSync<T>(Action<T> callback)
-            => Subscribe<T>(value => Task.Run(() => callback(value)));
+            => Subscribe<T>(message => Task.Run(() => callback(message)));
     }
 }
