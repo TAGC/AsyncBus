@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 
 namespace AsyncBus
 {
-    public class Bus : IAsyncBus
+    public sealed class Bus : IBus
     {
-        public Task Publish(object message)
+        public Task Publish(object message, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
@@ -21,7 +21,7 @@ namespace AsyncBus
             throw new NotImplementedException();
         }
 
-        public IDisposable Susbcribe<T>(Action<T> callback)
+        public IDisposable SubscribeSync<T>(Action<T> callback)
         {
             throw new NotImplementedException();
         }
