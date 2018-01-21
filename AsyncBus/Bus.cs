@@ -11,19 +11,15 @@ namespace AsyncBus
             throw new NotImplementedException();
         }
 
-        public IDisposable Subscribe<T>(Func<T, Task> callback)
-        {
-            throw new NotImplementedException();
-        }
-
         public IDisposable Subscribe<T>(Func<T, CancellationToken, Task> callback)
         {
             throw new NotImplementedException();
         }
 
+        public IDisposable Subscribe<T>(Func<T, Task> callback)
+            => Subscribe<T>((value, cancellationToken) => callback(value));
+            
         public IDisposable SubscribeSync<T>(Action<T> callback)
-        {
-            throw new NotImplementedException();
-        }
+            => Subscribe<T>(value => Task.Run(() => callback(value)));
     }
 }
