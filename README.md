@@ -8,7 +8,7 @@ A key distinction between AsyncBus and MemBus is that it allows you to subscribe
 
 ### Installation
 
-AsyncBus targets the .NET Standard and can be used within .NET Core and .NET Framework applications. To install this package using the dotnet CLI, run:
+AsyncBus targets the .NET Standard and can be used within .NET Core and .NET Framework applications. This project is currently a WIP, but if/when it's published to NuGet it can be installed from that feed. For example, using the dotnet CLI:
 
 ```
 dotnet add package AsyncBus
