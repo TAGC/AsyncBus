@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace AsyncBus
 {
     /// <inheritdoc />
-    public sealed class Bus : IBus
+    internal sealed class Bus : IBus
     {
         private readonly List<ISubscription> _subscriptions;
 

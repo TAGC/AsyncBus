@@ -14,7 +14,7 @@ namespace AsyncBus.Tests
 
         public BusSpec()
         {
-            _bus = new Bus();
+            _bus = BusSetup.CreateBus();
         }
 
         [Fact]
