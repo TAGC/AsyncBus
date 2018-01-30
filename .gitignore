@@ -1,4 +1,6 @@
 bin/
 obj/
 .vscode/
+.vs/
+*DotSettings*
 

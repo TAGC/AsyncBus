@@ -1,10 +1,8 @@
 using Xunit;
-using AsyncBus;
 using Shouldly;
 using System;
 using System.Threading.Tasks;
 using System.Threading;
-using System.Diagnostics;
 
 namespace AsyncBus.Tests
 {
@@ -20,7 +18,7 @@ namespace AsyncBus.Tests
         [Fact]
         internal void Bus_Should_Allow_Registering_Subscriber_Returning_Void()
         {
-            void Callback(string value) { };
+            void Callback(string value) { }
 
             Should.NotThrow(() => _bus.SubscribeSync<string>(Callback));
         }
@@ -89,7 +87,7 @@ namespace AsyncBus.Tests
         {
             // GIVEN two subscribers register to the bus.
             var tcs = new TaskCompletionSource<object>();
-            bool secondCallbackCalled = false;
+            var secondCallbackCalled = false;
 
             Task CallbackA(int _) => tcs.Task;
             void CallbackB(int _) => secondCallbackCalled = true;
@@ -118,7 +116,7 @@ namespace AsyncBus.Tests
             // GIVEN two subscribers register to the bus.
             var firstSubscriberNotifiedTcs = new TaskCompletionSource<object>();
             var firstSubscriberBlockTcs = new TaskCompletionSource<object>();
-            bool secondSubscriberNotified = false;
+            var secondSubscriberNotified = false;
 
             async Task CallbackA(int _)
             {
@@ -165,7 +163,7 @@ namespace AsyncBus.Tests
         internal async Task Cancellation_Tokens_Should_Be_Passed_To_Subscribers()
         {
             // GIVEN a subscriber that accepts a cancellation token is registered to the bus.
-            bool cancellationRequested = false;
+            var cancellationRequested = false;
             var tcs = new TaskCompletionSource<object>();
             async Task Callback(int _, CancellationToken cancellationToken)
             {
@@ -204,12 +202,12 @@ namespace AsyncBus.Tests
             }
         }
 
-        internal class Parent
+        private class Parent
         {
             public int Property { get; set; }
         }
 
-        internal class Child : Parent
+        private class Child : Parent
         {
         }
     }

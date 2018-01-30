@@ -9,7 +9,7 @@ namespace AsyncBus
     {
         private readonly Func<T, CancellationToken, Task> _callback;
 
-        private bool disposed;
+        private bool _disposed;
 
         public Subscription(Func<T, CancellationToken, Task> callback)
         {
@@ -21,12 +21,12 @@ namespace AsyncBus
 
         /// <inheritdoc />
         public bool CanProcessMessage(object message)
-            => message is T && !disposed;
+            => message is T && !_disposed;
 
         /// <inheritdoc />
         public Task ProcessMessage(object message, CancellationToken cancellationToken)
         {
-            if (disposed)
+            if (_disposed)
             {
                 throw new ObjectDisposedException(GetType().FullName);
             }
@@ -37,13 +37,13 @@ namespace AsyncBus
         /// <inheritdoc />
         public void Dispose()
         {
-            if (disposed)
+            if (_disposed)
             {
                 return;
             }
 
             Disposed?.Invoke(this, EventArgs.Empty);
-            disposed = true;
+            _disposed = true;
         }
     }
 }
