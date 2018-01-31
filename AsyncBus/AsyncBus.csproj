@@ -1,7 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
+    <Description>AsyncBus is a fully-asynchronous, in-memory implementation of a message bus.</Description>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AssemblyName>AsyncBus</AssemblyName>
+    <PackageId>AsyncBus</PackageId>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/TAGC/AsyncBus</RepositoryUrl>
   </PropertyGroup>
-
+  <ItemGroup>
+    <DotNetCliToolReference Include="dotnet-setversion" Version="*" />
+  </ItemGroup>
 </Project>
