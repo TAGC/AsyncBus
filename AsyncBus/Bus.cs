@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,9 +17,21 @@ namespace AsyncBus
         }
 
         /// <inheritdoc />
+        public IObservable<T> Observe<T>()
+        {
+            var subscription = new ObservableSubscription<T>();
+            subscription.Disposed += (s, e) => _subscriptions.Remove(subscription);
+            _subscriptions.Add(subscription);
+
+            return subscription;
+        }
+
+        /// <inheritdoc />
         public async Task Publish(object message, CancellationToken cancellationToken = default)
         {
-            foreach (var subscription in _subscriptions)
+            var temp = _subscriptions.ToList();
+
+            foreach (var subscription in temp)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -32,7 +45,7 @@ namespace AsyncBus
         /// <inheritdoc />
         public IDisposable Subscribe<T>(Func<T, CancellationToken, Task> callback)
         {
-            var subscription = new Subscription<T>(callback);
+            var subscription = new ActionSubscription<T>(callback);
             subscription.Disposed += (s, e) => _subscriptions.Remove(subscription);
             _subscriptions.Add(subscription);
 
@@ -40,11 +53,11 @@ namespace AsyncBus
         }
 
         /// <inheritdoc />
-        public IDisposable Subscribe<T>(Func<T, Task> callback)
-            => Subscribe<T>((message, cancellationToken) => callback(message));
+        public IDisposable Subscribe<T>(Func<T, Task> callback) =>
+            Subscribe<T>((message, cancellationToken) => callback(message));
 
         /// <inheritdoc />
-        public IDisposable SubscribeSync<T>(Action<T> callback)
-            => Subscribe<T>(message => Task.Run(() => callback(message)));
+        public IDisposable SubscribeSync<T>(Action<T> callback) =>
+            Subscribe<T>(message => Task.Run(() => callback(message)));
     }
 }

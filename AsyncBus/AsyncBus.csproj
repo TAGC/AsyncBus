@@ -6,10 +6,15 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>AsyncBus</AssemblyName>
     <PackageId>AsyncBus</PackageId>
+    <Authors>ThymineC</Authors>
+    <Copyright>MIT</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/TAGC/AsyncBus</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-    <DotNetCliToolReference Include="dotnet-setversion" Version="*" />
+    <DotNetCliToolReference Include="dotnet-setversion" Version="1.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Reactive" Version="4.0.0-preview00001" />
   </ItemGroup>
 </Project>
