@@ -14,7 +14,7 @@ build_script:
   - ps: dotnet build
   - ps: dotnet pack --include-source --include-symbols -c Release -o out/
 test_script:
-  - ps: cd AsyncBus.Tests; dotnet test
+  - ps: cd AsyncBus.Tests; dotnet test -c Release
 artifacts:
   path: AsyncBus/out/*.nupkg
   name: NuGet packages
