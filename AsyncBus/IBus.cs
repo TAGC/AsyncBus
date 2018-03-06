@@ -1,12 +1,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 
 namespace AsyncBus
 {
     /// <summary>
     /// Represents a message bus that allows for asynchronous message publication and handling.
     /// </summary>
+    [PublicAPI]
     public interface IBus
     {
         /// <summary>
@@ -18,6 +20,7 @@ namespace AsyncBus
         /// </summary>
         /// <typeparam name="T">The type of message to observe.</typeparam>
         /// <returns>An observable.</returns>
+        [NotNull]
         IObservable<T> Observe<T>();
 
         /// <summary>
@@ -33,7 +36,7 @@ namespace AsyncBus
         /// prevent continuation in the current context until all subscribers have finishing handling the
         /// message. If any subscribers throw an exception, it will be propagated to the returned task.
         /// </returns>
-        Task Publish(object message, CancellationToken cancellationToken = default);
+        Task Publish([NotNull] object message, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Registers a subscriber to messages of type <typeparamref name="T" />.
@@ -49,7 +52,8 @@ namespace AsyncBus
         /// </param>
         /// <typeparam name="T">The type of message to subscribe to.</typeparam>
         /// <returns>A token that can be disposed to unregister this subscriber.</returns>
-        IDisposable Subscribe<T>(Func<T, CancellationToken, Task> callback);
+        [NotNull]
+        IDisposable Subscribe<T>([NotNull] Func<T, CancellationToken, Task> callback);
 
         /// <summary>
         /// Registers a subscriber to messages of type <typeparamref name="T" />.
@@ -62,7 +66,8 @@ namespace AsyncBus
         /// </param>
         /// <typeparam name="T">The type of message to subscribe to.</typeparam>
         /// <returns>A token that can be disposed to unregister this subscriber.</returns>
-        IDisposable Subscribe<T>(Func<T, Task> callback);
+        [NotNull]
+        IDisposable Subscribe<T>([NotNull] Func<T, Task> callback);
 
         /// <summary>
         /// Registers a subscriber to messages of type <typeparamref name="T" />.
@@ -75,6 +80,7 @@ namespace AsyncBus
         /// </param>
         /// <typeparam name="T">The type of message to subscribe to.</typeparam>
         /// <returns>A token that can be disposed to unregister this subscriber.</returns>
-        IDisposable SubscribeSync<T>(Action<T> callback);
+        [NotNull]
+        IDisposable SubscribeSync<T>([NotNull] Action<T> callback);
     }
 }
