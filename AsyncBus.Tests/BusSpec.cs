@@ -1,8 +1,8 @@
-using Xunit;
-using Shouldly;
 using System;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
+using Shouldly;
+using Xunit;
 
 namespace AsyncBus.Tests
 {
@@ -16,19 +16,21 @@ namespace AsyncBus.Tests
         }
 
         [Fact]
-        internal void Bus_Should_Allow_Registering_Subscriber_Returning_Void()
-        {
-            void Callback(string value) { }
-
-            Should.NotThrow(() => _bus.SubscribeSync<string>(Callback));
-        }
-
-        [Fact]
         internal void Bus_Should_Allow_Registering_Subscriber_Returning_Task()
         {
             Task Callback(string value) => Task.CompletedTask;
 
             Should.NotThrow(() => _bus.Subscribe<string>(Callback));
+        }
+
+        [Fact]
+        internal void Bus_Should_Allow_Registering_Subscriber_Returning_Void()
+        {
+            void Callback(string value)
+            {
+            }
+
+            Should.NotThrow(() => _bus.SubscribeSync<string>(Callback));
         }
 
         [Fact]
@@ -40,73 +42,31 @@ namespace AsyncBus.Tests
         }
 
         [Fact]
-        internal async Task Subscriber_Should_Not_Be_Called_After_Corresponding_Subscription_Token_Disposed()
+        internal async Task Cancellation_Tokens_Should_Be_Passed_To_Subscribers()
         {
-            // GIVEN we register a callback to update a local variable.
-            int? receivedValue = null;
-            void Callback(int value) => receivedValue = value;
-            var subscriptionToken = _bus.SubscribeSync<int>(Callback);
-
-            // WHEN we publish a value.
-            await _bus.Publish(3);
-
-            // THEN the local variable should be this value.
-            receivedValue.ShouldBe(3);
-            receivedValue = null;
-
-            // WHEN we dispose the subscription token.
-            subscriptionToken.Dispose();
-
-            // AND we publish another value.
-            await _bus.Publish(5);
-
-            // THEN the variable should not have been updated.
-            receivedValue.ShouldBeNull();
-        }
-
-        [Fact]
-        internal async Task Subscription_Should_Be_Covariant()
-        {
-            // GIVEN we register a callback that handles Parent objects.
-            Parent receivedParent = null;
-            void Callback(Parent parent) => receivedParent = parent;
-
-            using (_bus.SubscribeSync<Parent>(Callback))
-            {
-                // WHEN we publish a child object.
-                await _bus.Publish(new Child { Property = 5 });
-
-                // THEN the subscriber should have received the published child.
-                receivedParent.ShouldNotBeNull();
-                receivedParent.Property.ShouldBe(5);
-            }
-        }
-
-        [Fact]
-        internal async Task Subscribers_Should_Be_Notified_In_Order_Of_Registration()
-        {
-            // GIVEN two subscribers register to the bus.
+            // GIVEN a subscriber that accepts a cancellation token is registered to the bus.
+            var cancellationRequested = false;
             var tcs = new TaskCompletionSource<object>();
-            var secondCallbackCalled = false;
 
-            Task CallbackA(int _) => tcs.Task;
-            void CallbackB(int _) => secondCallbackCalled = true;
-
-            using (_bus.Subscribe<int>(CallbackA))
-            using (_bus.SubscribeSync<int>(CallbackB))
+            async Task Callback(int _, CancellationToken cancellationToken)
             {
-                // WHEN we publish a message on the bus.
-                var publicationTask = _bus.Publish(3);
+                await tcs.Task;
+                cancellationRequested = cancellationToken.IsCancellationRequested;
+            }
 
-                // THEN the second callback should not have been called.
-                secondCallbackCalled.ShouldBeFalse();
+            using (_bus.Subscribe<int>(Callback))
+            {
+                // WHEN we publish a message with a cancellation token.
+                var cts = new CancellationTokenSource();
+                var publicationTask = _bus.Publish(3, cts.Token);
 
-                // WHEN we signal completion of the first callback.
+                // AND we signal cancellation.
+                cts.Cancel();
+
+                // THEN the subscriber should be notified of that cancellation.
                 tcs.SetResult(null);
-
-                // THEN the second callback should have been called.
                 await publicationTask;
-                secondCallbackCalled.ShouldBeTrue();
+                cancellationRequested.ShouldBeTrue();
             }
         }
 
@@ -123,7 +83,7 @@ namespace AsyncBus.Tests
                 firstSubscriberNotifiedTcs.SetResult(null);
                 await firstSubscriberBlockTcs.Task;
             }
-            
+
             void CallbackB(int _) => secondSubscriberNotified = true;
 
             using (_bus.Subscribe<int>(CallbackA))
@@ -160,35 +120,6 @@ namespace AsyncBus.Tests
         }
 
         [Fact]
-        internal async Task Cancellation_Tokens_Should_Be_Passed_To_Subscribers()
-        {
-            // GIVEN a subscriber that accepts a cancellation token is registered to the bus.
-            var cancellationRequested = false;
-            var tcs = new TaskCompletionSource<object>();
-            async Task Callback(int _, CancellationToken cancellationToken)
-            {
-                await tcs.Task;
-                cancellationRequested = cancellationToken.IsCancellationRequested;
-            }
-
-            using (_bus.Subscribe<int>(Callback))
-            {
-                // WHEN we publish a message with a cancellation token.
-                var cts = new CancellationTokenSource();
-                var publicationTask = _bus.Publish(3, cts.Token);
-
-                // AND we signal cancellation.
-                cts.Cancel();
-
-                // THEN the subscriber should be notified of that cancellation.
-                tcs.SetResult(null);
-                await publicationTask;
-                cancellationRequested.ShouldBeTrue();
-            }
-
-        }
-
-        [Fact]
         internal async Task Exceptions_Should_Propagate_From_Subscribers_To_Publication_Task()
         {
             // GIVEN a subscriber that throws an exception when notified.
@@ -202,13 +133,101 @@ namespace AsyncBus.Tests
             }
         }
 
-        private class Parent
+        [Fact]
+        internal async Task Subscriber_Should_Not_Be_Called_After_Corresponding_Subscription_Token_Disposed()
         {
-            public int Property { get; set; }
+            // GIVEN we register a callback to update a local variable.
+            int? receivedValue = null;
+            void Callback(int value) => receivedValue = value;
+            var subscriptionToken = _bus.SubscribeSync<int>(Callback);
+
+            // WHEN we publish a value.
+            await _bus.Publish(3);
+
+            // THEN the local variable should be this value.
+            receivedValue.ShouldBe(3);
+            receivedValue = null;
+
+            // WHEN we dispose the subscription token.
+            subscriptionToken.Dispose();
+
+            // AND we publish another value.
+            await _bus.Publish(5);
+
+            // THEN the variable should not have been updated.
+            receivedValue.ShouldBeNull();
+        }
+
+        [Fact]
+        internal async Task Subscribers_Should_Be_Notified_In_Order_Of_Registration()
+        {
+            // GIVEN two subscribers register to the bus.
+            var tcs = new TaskCompletionSource<object>();
+            var secondCallbackCalled = false;
+
+            Task CallbackA(int _) => tcs.Task;
+            void CallbackB(int _) => secondCallbackCalled = true;
+
+            using (_bus.Subscribe<int>(CallbackA))
+            using (_bus.SubscribeSync<int>(CallbackB))
+            {
+                // WHEN we publish a message on the bus.
+                var publicationTask = _bus.Publish(3);
+
+                // THEN the second callback should not have been called.
+                secondCallbackCalled.ShouldBeFalse();
+
+                // WHEN we signal completion of the first callback.
+                tcs.SetResult(null);
+
+                // THEN the second callback should have been called.
+                await publicationTask;
+                secondCallbackCalled.ShouldBeTrue();
+            }
+        }
+
+        [Fact]
+        internal async Task Subscription_Should_Be_Contravariant()
+        {
+            // GIVEN we register a callback that handles Parent objects.
+            Parent receivedParent = null;
+            void Callback(Parent parent) => receivedParent = parent;
+
+            using (_bus.SubscribeSync<Parent>(Callback))
+            {
+                // WHEN we publish a child object.
+                await _bus.Publish(new Child { Property = 5 });
+
+                // THEN the subscriber should have received the published child.
+                receivedParent.ShouldNotBeNull();
+                receivedParent.Property.ShouldBe(5);
+            }
+        }
+
+        [Fact]
+        internal async Task Subscription_Should_Not_Be_Covariant()
+        {
+            // GIVEN we register a callback that handles Child objects.
+            Child receivedChild = null;
+            void Callback(Child child) => receivedChild = child;
+
+            using (_bus.SubscribeSync<Child>(Callback))
+            {
+                // WHEN we publish a parent object.
+                await _bus.Publish(new Parent { Property = 5 });
+
+                // THEN the subscriber should not have received the published parent.
+                receivedChild.ShouldBeNull();
+            }
         }
 
         private class Child : Parent
         {
+        }
+
+        private class Parent
+        {
+            public int Property { get; set; }
         }
     }
 }

@@ -1,10 +1,16 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2027
+VisualStudioVersion = 15.0.27130.2036
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AsyncBus.Tests", "AsyncBus.Tests\AsyncBus.Tests.csproj", "{2BF57125-F558-46F7-87E6-03BAE4A36178}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AsyncBus", "AsyncBus\AsyncBus.csproj", "{AC1DC16F-C8B5-47A9-AA44-60F406493F0A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D76130FE-E77A-4843-AD45-D2049A285F38}"
+	ProjectSection(SolutionItems) = preProject
+		appveyor.yml = appveyor.yml
+		GitVersion.yml = GitVersion.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
